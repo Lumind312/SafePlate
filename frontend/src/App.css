@@ -1,0 +1,895 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #18251f;
+  background: #f5f8f5;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 85% 10%,
+      rgba(101, 180, 119, 0.15),
+      transparent 30%
+    ),
+    #f5f8f5;
+}
+
+
+/* -----------------------------
+   Navigation
+----------------------------- */
+
+.navbar {
+  height: 76px;
+  padding: 0 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid #e4ebe5;
+
+  backdrop-filter: blur(10px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 12px;
+  background: #e2f5e7;
+
+  font-size: 22px;
+}
+
+.brand h1 {
+  margin: 0;
+
+  font-size: 20px;
+  letter-spacing: -0.5px;
+}
+
+.brand span {
+  color: #738078;
+  font-size: 12px;
+}
+
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #52705c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #42ad63;
+}
+
+
+/* -----------------------------
+   Main
+----------------------------- */
+
+.container {
+  width: min(1050px, 92%);
+  margin: auto;
+  padding: 55px 0;
+}
+
+.hero {
+  margin-bottom: 35px;
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+
+  color: #438754;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.hero h2 {
+  max-width: 720px;
+
+  margin: 0;
+
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 1.03;
+  letter-spacing: -2.5px;
+}
+
+.hero h2 span {
+  color: #4e9b61;
+}
+
+.hero p {
+  max-width: 650px;
+
+  margin-top: 20px;
+
+  color: #68746d;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+
+/* -----------------------------
+   Cards
+----------------------------- */
+
+.card {
+  margin-bottom: 22px;
+  padding: 30px;
+
+  background: white;
+  border: 1px solid #e4ebe5;
+  border-radius: 20px;
+
+  box-shadow:
+    0 8px 30px rgba(35, 63, 43, 0.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 24px;
+}
+
+.section-header h3 {
+  margin: 0 0 6px;
+
+  font-size: 19px;
+}
+
+.section-header p {
+  margin: 0;
+
+  color: #7a847d;
+  font-size: 14px;
+}
+
+.selection-count {
+  padding: 7px 12px;
+
+  color: #438754;
+  background: #eaf6ed;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* -----------------------------
+   Allergies
+----------------------------- */
+
+.allergy-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 10px;
+}
+
+.allergy {
+  padding: 13px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #e0e7e1;
+  border-radius: 10px;
+
+  background: #fff;
+
+  color: #46524b;
+
+  cursor: pointer;
+
+  text-align: left;
+  transition: 0.2s ease;
+}
+
+.allergy:hover {
+  border-color: #72b982;
+  background: #f5fbf6;
+}
+
+.allergy.selected {
+  border-color: #68ad76;
+  background: #edf8ef;
+  color: #286d39;
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #cbd6ce;
+  border-radius: 6px;
+
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.selected .check {
+  color: white;
+  background: #4e9b61;
+  border-color: #4e9b61;
+}
+
+
+/* -----------------------------
+   Recipe input
+----------------------------- */
+
+textarea {
+  width: 100%;
+  min-height: 240px;
+
+  padding: 18px;
+
+  resize: vertical;
+
+  border: 1px solid #dfe7e1;
+  border-radius: 13px;
+
+  outline: none;
+
+  color: #27332c;
+  background: #fbfcfb;
+
+  line-height: 1.7;
+
+  transition: 0.2s;
+}
+
+textarea:focus {
+  border-color: #68ad76;
+
+  box-shadow:
+    0 0 0 3px rgba(90, 167, 105, 0.1);
+}
+
+.input-actions {
+  margin-top: 15px;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.clear-button,
+.analyze-button,
+.alternative-button {
+  border: 0;
+  border-radius: 10px;
+
+  padding: 12px 18px;
+
+  cursor: pointer;
+
+  font-weight: 700;
+}
+
+.clear-button {
+  background: #f0f3f1;
+  color: #5c6961;
+}
+
+.analyze-button {
+  background: #4d9b61;
+  color: white;
+
+  box-shadow:
+    0 5px 15px rgba(77, 155, 97, 0.2);
+}
+
+.analyze-button:hover {
+  background: #428954;
+}
+
+.analyze-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin-top: 15px;
+  padding: 12px 15px;
+
+  border-radius: 10px;
+
+  color: #9c3f3f;
+  background: #fff1f1;
+
+  font-size: 14px;
+}
+
+
+/* -----------------------------
+   Results
+----------------------------- */
+
+.results {
+  margin-top: 40px;
+}
+
+.results-header {
+  margin-bottom: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.results-header h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+
+.safe-badge,
+.danger-badge {
+  padding: 10px 15px;
+
+  border-radius: 20px;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.safe-badge {
+  color: #27723b;
+  background: #e7f7eb;
+}
+
+.danger-badge {
+  color: #a43e3e;
+  background: #ffeded;
+}
+
+
+/* -----------------------------
+   Warning
+----------------------------- */
+
+.warning {
+  display: flex;
+  gap: 15px;
+
+  padding: 22px;
+
+  margin-bottom: 18px;
+
+  border: 1px solid #f2caca;
+  border-radius: 16px;
+
+  background: #fff5f5;
+}
+
+.warning-icon {
+  font-size: 25px;
+}
+
+.warning h3 {
+  margin: 0 0 6px;
+
+  color: #a44040;
+}
+
+.warning p {
+  margin: 0;
+
+  color: #7e5555;
+  line-height: 1.5;
+}
+
+
+/* -----------------------------
+   Allergen cards
+----------------------------- */
+
+.allergen-results {
+  display: grid;
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 14px;
+
+  margin-bottom: 22px;
+}
+
+.allergen-card {
+  padding: 20px;
+
+  border: 1px solid #f0cccc;
+  border-radius: 15px;
+
+  background: white;
+}
+
+.allergen-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-bottom: 14px;
+
+  color: #9c4040;
+}
+
+.ingredient-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ingredient-tag {
+  padding: 7px 10px;
+
+  border-radius: 8px;
+
+  background: #fff0f0;
+
+  color: #914848;
+
+  font-size: 13px;
+}
+
+
+/* -----------------------------
+   Ingredients
+----------------------------- */
+
+.ingredients-section {
+  padding: 26px;
+
+  border: 1px solid #e4ebe5;
+  border-radius: 16px;
+
+  background: white;
+}
+
+.ingredients-section h3 {
+  margin: 0 0 5px;
+}
+
+.ingredients-section > p {
+  margin-top: 0;
+  color: #7b867f;
+  font-size: 14px;
+}
+
+.ingredient-table {
+  margin-top: 20px;
+
+  display: flex;
+  flex-direction: column;
+
+  border: 1px solid #e6ece7;
+  border-radius: 12px;
+
+  overflow: hidden;
+}
+
+.ingredient-row {
+  min-height: 55px;
+  padding: 0 15px;
+
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: center;
+
+  border-bottom: 1px solid #edf1ee;
+}
+
+.ingredient-row:last-child {
+  border-bottom: 0;
+}
+
+.ingredient-row.flagged {
+  background: #fff6f6;
+}
+
+.ingredient-row.flagged strong {
+  color: #a13f3f;
+}
+
+.confidence {
+  color: #88938c;
+  font-size: 12px;
+}
+
+
+/* -----------------------------
+   Alternatives
+----------------------------- */
+
+.alternative-card {
+  margin-top: 18px;
+  padding: 23px;
+
+  display: flex;
+  gap: 15px;
+
+  border: 1px solid #dcecdf;
+  border-radius: 16px;
+
+  background: #f4fbf5;
+}
+
+.alternative-icon {
+  font-size: 27px;
+}
+
+.alternative-card h3 {
+  margin: 0 0 6px;
+  color: #367448;
+}
+
+.alternative-card p {
+  margin: 0 0 15px;
+
+  color: #637068;
+}
+
+.alternative-button {
+  color: white;
+  background: #4e9b61;
+}
+
+
+/* -----------------------------
+   Footer
+----------------------------- */
+
+footer {
+  margin-top: 40px;
+  padding: 20px;
+
+  color: #7a857e;
+
+  text-align: center;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+footer strong {
+  color: #5e6b63;
+}
+
+
+/* -----------------------------
+   Mobile
+----------------------------- */
+
+@media (max-width: 700px) {
+
+  .navbar {
+    padding: 0 5%;
+  }
+
+  .nav-status {
+    display: none;
+  }
+
+  .container {
+    padding: 35px 0;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .hero h2 {
+    letter-spacing: -1.5px;
+  }
+
+  .allergy-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .allergen-results {
+    grid-template-columns: 1fr;
+  }
+
+  .results-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .ingredient-row {
+    grid-template-columns: 25px 1fr;
+    padding: 12px;
+    gap: 5px;
+  }
+
+  .confidence {
+    grid-column: 2;
+  }
+
+  .input-actions {
+    flex-direction: column-reverse;
+  }
+
+  .input-actions button {
+    width: 100%;
+  }
+}
+
+.input-tabs {
+  display: flex;
+  gap: 8px;
+
+  margin-bottom: 20px;
+
+  padding: 5px;
+
+  width: fit-content;
+
+  background: #f0f4f1;
+
+  border-radius: 12px;
+}
+
+.tab {
+  padding: 10px 15px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #68746d;
+
+  cursor: pointer;
+
+  font-weight: 700;
+}
+
+.tab.active {
+  background: white;
+  color: #367448;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+
+.upload-box {
+  min-height: 230px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  border: 2px dashed #bdd9c3;
+  border-radius: 16px;
+
+  background: #f8fcf9;
+
+  color: #35483b;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.upload-box:hover {
+  border-color: #59a46a;
+  background: #f2faf4;
+}
+
+.upload-icon {
+  width: 55px;
+  height: 55px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 5px;
+
+  border-radius: 50%;
+
+  background: #e3f3e7;
+
+  font-size: 25px;
+}
+
+.upload-box strong {
+  font-size: 17px;
+}
+
+.upload-box span {
+  color: #7b887f;
+  font-size: 13px;
+}
+
+.upload-button {
+  margin-top: 8px;
+
+  padding: 9px 15px;
+
+  border-radius: 8px;
+
+  background: #4d9b61;
+
+  color: white !important;
+
+  font-weight: 700;
+}
+
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  padding: 12px;
+
+  border: 1px solid #dce8de;
+  border-radius: 12px;
+
+  background: white;
+}
+
+.preview img {
+  width: 90px;
+  height: 90px;
+
+  object-fit: cover;
+
+  border-radius: 8px;
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.preview-info strong {
+  color: #35443a;
+}
+
+.preview-info span {
+  color: #718078;
+  font-size: 13px;
+}
+
+
+@media (max-width: 600px) {
+
+  .input-tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+  }
+
+  .upload-box {
+    min-height: 200px;
+  }
+
+}
+
+
+.ocr-card {
+  margin-bottom: 18px;
+  padding: 22px;
+
+  border: 1px solid #dfe9e1;
+  border-radius: 16px;
+
+  background: white;
+}
+
+.ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 15px;
+}
+
+.ocr-header h3 {
+  margin: 0 0 5px;
+}
+
+.ocr-header p {
+  margin: 0;
+
+  color: #7a857e;
+  font-size: 13px;
+}
+
+.ocr-badge {
+  padding: 6px 10px;
+
+  border-radius: 7px;
+
+  color: #438754;
+  background: #eaf6ed;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ocr-text {
+  margin: 0;
+  padding: 15px;
+
+  max-height: 250px;
+  overflow: auto;
+
+  border-radius: 10px;
+
+  background: #f6f8f6;
+
+  color: #47534c;
+
+  white-space: pre-wrap;
+
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+}
