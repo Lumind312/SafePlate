@@ -1,79 +1,154 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
 import pandas as pd
+import pytesseract
+
+from PIL import Image
+
 from transformers import pipeline
 
+
+# ============================================================
+# Flask setup
+# ============================================================
+
 app = Flask(__name__)
+
+# Allow requests from the React frontend
 CORS(app)
 
-# --------------------------------------------------
+
+# ============================================================
 # Load allergen database
-# --------------------------------------------------
+# ============================================================
 
-df = pd.read_csv("FoodData.csv")
-df = df[["Food", "Allergy"]]
+try:
+    food_df = pd.read_csv("FoodData.csv")
 
-# Remove empty values
-df = df.dropna(subset=["Food", "Allergy"])
+    food_df = food_df[["Food", "Allergy"]]
 
-# Create:
-# {
-#   "milk": ["milk", "yogurt", "cheese", ...],
-#   "peanut": ["peanut", ...],
-# }
-ALLERGENS = (
-    df.groupby("Allergy")["Food"]
-    .apply(list)
-    .to_dict()
-)
+    # Remove rows with missing values
+    food_df = food_df.dropna(
+        subset=["Food", "Allergy"]
+    )
 
-# --------------------------------------------------
+    # Convert FoodData.csv into:
+    #
+    # {
+    #     "milk": ["milk", "yogurt", "cheese"],
+    #     "peanut": ["peanut", "peanuts"],
+    #     ...
+    # }
+
+    ALLERGENS = (
+        food_df
+        .groupby("Allergy")["Food"]
+        .apply(list)
+        .to_dict()
+    )
+
+    print("Loaded allergen database.")
+    print(
+        f"Found {len(ALLERGENS)} allergy categories."
+    )
+
+except Exception as e:
+
+    print("ERROR loading FoodData.csv:")
+    print(e)
+
+    ALLERGENS = {}
+
+
+# ============================================================
 # Load recipe NER model
-# --------------------------------------------------
+# ============================================================
 
-ner = pipeline(
-    "ner",
-    model="rgonzale/recipe-ner-model",
-    aggregation_strategy="simple"
-)
+print("Loading recipe NER model...")
+
+try:
+
+    ner = pipeline(
+        "ner",
+        model="rgonzale/recipe-ner-model",
+        aggregation_strategy="simple"
+    )
+
+    print("Recipe NER model loaded successfully.")
+
+except Exception as e:
+
+    print("ERROR loading recipe NER model:")
+    print(e)
+
+    ner = None
 
 
-# --------------------------------------------------
-# Allergen detection
-# --------------------------------------------------
+# ============================================================
+# OCR
+# ============================================================
 
-def find_allergens(ingredients, selected_allergens=None):
+def extract_text_from_image(image_file):
     """
-    Find allergens contained in detected ingredients.
+    Use Tesseract OCR to extract text from an image.
+    """
 
-    ingredients:
-        [
-            {
-                "text": "whole milk",
-                "confidence": 0.98
-            }
-        ]
+    print("Starting OCR...")
 
-    selected_allergens:
-        ["milk", "peanut"]
+    image = Image.open(image_file)
+
+    # Convert image to RGB
+    image = image.convert("RGB")
+
+    # OCR configuration
+    text = pytesseract.image_to_string(
+        image,
+        config="--psm 6"
+    )
+
+    text = text.strip()
+
+    print("OCR complete.")
+    print("OCR text:")
+    print(text)
+
+    return text
+
+
+# ============================================================
+# Allergen detection
+# ============================================================
+
+def find_allergens(
+    ingredients,
+    selected_allergens=None
+):
+    """
+    Compare detected ingredients against
+    FoodData.csv.
     """
 
     found = {}
 
-    # Normalize selected allergens
+    # Normalize selected allergies
     if selected_allergens:
+
         selected_allergens = [
             allergy.lower().strip()
             for allergy in selected_allergens
         ]
 
     for ingredient in ingredients:
+
         text = ingredient["text"].lower().strip()
 
         for allergen, foods in ALLERGENS.items():
 
-            # If user selected allergies, only check those
+            # If the user selected allergies,
+            # only check those allergies.
             if selected_allergens:
+
                 if allergen.lower() not in selected_allergens:
                     continue
 
@@ -84,20 +159,46 @@ def find_allergens(ingredients, selected_allergens=None):
 
                 food = food.lower().strip()
 
-                if food and food in text:
-                    found.setdefault(allergen, []).append(
+                if not food:
+                    continue
+
+                if food in text:
+
+                    found.setdefault(
+                        allergen,
+                        []
+                    ).append(
                         ingredient["text"]
                     )
+
                     break
 
     return found
 
 
-# --------------------------------------------------
-# Recipe analyzer
-# --------------------------------------------------
+# ============================================================
+# Recipe analysis
+# ============================================================
 
-def analyze_recipe(recipe_text, selected_allergens=None):
+def analyze_recipe(
+    recipe_text,
+    selected_allergens=None
+):
+
+    if ner is None:
+
+        raise RuntimeError(
+            "Recipe NER model could not be loaded."
+        )
+
+    if not recipe_text:
+
+        return {
+            "ingredients": [],
+            "allergens": {}
+        }
+
+    print("Running recipe NER...")
 
     entities = ner(recipe_text)
 
@@ -115,10 +216,16 @@ def analyze_recipe(recipe_text, selected_allergens=None):
                 )
             })
 
+    print("Detected ingredients:")
+    print(ingredients)
+
     allergens = find_allergens(
         ingredients,
         selected_allergens
     )
+
+    print("Detected allergens:")
+    print(allergens)
 
     return {
         "ingredients": ingredients,
@@ -126,50 +233,75 @@ def analyze_recipe(recipe_text, selected_allergens=None):
     }
 
 
-# --------------------------------------------------
-# API: Get available allergens
-# --------------------------------------------------
+# ============================================================
+# Health check
+# ============================================================
 
-@app.route("/api/allergens", methods=["GET"])
+@app.route(
+    "/api/health",
+    methods=["GET"]
+)
+def health():
+
+    return jsonify({
+        "status": "ok"
+    })
+
+
+# ============================================================
+# Get allergen list
+# ============================================================
+
+@app.route(
+    "/api/allergens",
+    methods=["GET"]
+)
 def get_allergens():
 
-    allergens = sorted([
-        allergy
-        for allergy in ALLERGENS.keys()
-    ])
+    allergens = sorted(
+        list(ALLERGENS.keys())
+    )
 
     return jsonify({
         "allergens": allergens
     })
 
 
-# --------------------------------------------------
-# API: Analyze recipe
-# --------------------------------------------------
+# ============================================================
+# Analyze typed recipe
+# ============================================================
 
-@app.route("/api/analyze", methods=["POST"])
+@app.route(
+    "/api/analyze",
+    methods=["POST"]
+)
 def analyze():
 
-    data = request.get_json()
-
-    if not data:
-        return jsonify({
-            "error": "No JSON data provided."
-        }), 400
-
-    recipe = data.get("recipe", "")
-    selected_allergens = data.get(
-        "allergens",
-        []
-    )
-
-    if not recipe.strip():
-
-        return jsonify({
-            "error": "Please provide a recipe."
-        }), 400
-
     try:
+
+        data = request.get_json()
+
+        if not data:
+
+            return jsonify({
+                "error": "No request data provided."
+            }), 400
+
+        recipe = data.get(
+            "recipe",
+            ""
+        )
+
+        selected_allergens = data.get(
+            "allergens",
+            []
+        )
+
+        if not recipe.strip():
+
+            return jsonify({
+                "error": "Please enter a recipe."
+            }), 400
 
         result = analyze_recipe(
             recipe,
@@ -180,24 +312,129 @@ def analyze():
 
     except Exception as e:
 
+        print("ERROR in /api/analyze:")
+        print(e)
+
         return jsonify({
             "error": str(e)
         }), 500
 
 
-# --------------------------------------------------
-# Health check
-# --------------------------------------------------
+# ============================================================
+# Analyze uploaded image
+# ============================================================
 
-@app.route("/api/health", methods=["GET"])
-def health():
+@app.route(
+    "/api/analyze-image",
+    methods=["POST"]
+)
+def analyze_image():
 
-    return jsonify({
-        "status": "ok"
-    })
+    try:
 
+        # -----------------------------------------
+        # Check image
+        # -----------------------------------------
+
+        if "image" not in request.files:
+
+            return jsonify({
+                "error": "No image was uploaded."
+            }), 400
+
+        image = request.files["image"]
+
+        if image.filename == "":
+
+            return jsonify({
+                "error": "No image was selected."
+            }), 400
+
+
+        # -----------------------------------------
+        # Get selected allergies
+        # -----------------------------------------
+
+        allergies_string = request.form.get(
+            "allergens",
+            ""
+        )
+
+        if allergies_string:
+
+            selected_allergens = [
+                allergy.strip()
+                for allergy in allergies_string.split(",")
+                if allergy.strip()
+            ]
+
+        else:
+
+            selected_allergens = []
+
+
+        # -----------------------------------------
+        # OCR
+        # -----------------------------------------
+
+        extracted_text = extract_text_from_image(
+            image
+        )
+
+        if not extracted_text:
+
+            return jsonify({
+                "error": (
+                    "OCR could not detect any text "
+                    "in the image."
+                )
+            }), 400
+
+
+        # -----------------------------------------
+        # Analyze OCR text
+        # -----------------------------------------
+
+        result = analyze_recipe(
+            extracted_text,
+            selected_allergens
+        )
+
+
+        # -----------------------------------------
+        # Return OCR text too
+        # -----------------------------------------
+
+        result["ocr_text"] = extracted_text
+
+        return jsonify(result)
+
+
+    except Exception as e:
+
+        print("ERROR in /api/analyze-image:")
+        print(e)
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# ============================================================
+# Run server
+# ============================================================
 
 if __name__ == "__main__":
+
+    print("")
+    print("====================================")
+    print(" SafePlate Backend")
+    print("====================================")
+    print("")
+    print("Server running at:")
+    print("http://localhost:5000")
+    print("")
+
     app.run(
         host="0.0.0.0",
         port=5000,

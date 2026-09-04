@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const FALLBACK_ALLERGENS = [
+
+const API_URL = "http://localhost:5000";
+
+
+const DEFAULT_ALLERGENS = [
   "peanut",
   "tree nut",
   "milk",
@@ -13,158 +17,474 @@ const FALLBACK_ALLERGENS = [
   "sesame",
 ];
 
+
 function App() {
+
+  // ==========================================================
+  // State
+  // ==========================================================
+
   const [recipe, setRecipe] = useState("");
 
-  const [allergens, setAllergens] = useState(
-    FALLBACK_ALLERGENS
-  );
+  const [image, setImage] = useState(null);
+
+  const [imagePreview, setImagePreview] =
+    useState(null);
+
+  const [inputMode, setInputMode] =
+    useState("recipe");
+
+  const [allergens, setAllergens] =
+    useState(DEFAULT_ALLERGENS);
 
   const [selectedAllergens, setSelectedAllergens] =
-    useState([
-      "peanut",
-      "tree nut",
-      "milk",
-      "egg",
-      "soy",
-      "wheat",
-      "fish",
-      "shellfish",
-      "sesame",
-    ]);
+    useState(DEFAULT_ALLERGENS);
 
-  const [result, setResult] = useState(null);
+  const [result, setResult] =
+    useState(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  // ---------------------------------------------
-  // Load allergens from backend
-  // ---------------------------------------------
+
+  // ==========================================================
+  // Load allergies from backend
+  // ==========================================================
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/allergens")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.allergens?.length) {
-          setAllergens(data.allergens);
-          setSelectedAllergens(data.allergens);
+
+    fetch(`${API_URL}/api/allergens`)
+
+      .then((response) => {
+
+        if (!response.ok) {
+          throw new Error(
+            "Could not load allergies."
+          );
         }
+
+        return response.json();
+
       })
-      .catch(() => {
-        // Use fallback allergens if backend isn't ready
+
+      .then((data) => {
+
+        if (
+          data.allergens &&
+          data.allergens.length > 0
+        ) {
+
+          setAllergens(data.allergens);
+
+          setSelectedAllergens(
+            data.allergens
+          );
+
+        }
+
+      })
+
+      .catch((err) => {
+
+        console.log(
+          "Using default allergens:",
+          err.message
+        );
+
       });
+
   }, []);
 
-  // ---------------------------------------------
+
+  // ==========================================================
   // Toggle allergy
-  // ---------------------------------------------
+  // ==========================================================
 
   function toggleAllergen(allergen) {
-    setSelectedAllergens((current) => {
-      if (current.includes(allergen)) {
-        return current.filter(
-          (item) => item !== allergen
-        );
-      }
 
-      return [...current, allergen];
-    });
+    setSelectedAllergens(
+      (current) => {
+
+        if (
+          current.includes(allergen)
+        ) {
+
+          return current.filter(
+            (item) =>
+              item !== allergen
+          );
+
+        }
+
+        return [
+          ...current,
+          allergen
+        ];
+
+      }
+    );
+
   }
 
-  // ---------------------------------------------
-  // Analyze recipe
-  // ---------------------------------------------
 
-  async function analyzeRecipe() {
-    if (!recipe.trim()) {
-      setError("Please enter a recipe first.");
+  // ==========================================================
+  // Select all allergies
+  // ==========================================================
+
+  function selectAllAllergens() {
+
+    setSelectedAllergens(
+      [...allergens]
+    );
+
+  }
+
+
+  // ==========================================================
+  // Clear all allergies
+  // ==========================================================
+
+  function clearAllAllergens() {
+
+    setSelectedAllergens([]);
+
+  }
+
+
+  // ==========================================================
+  // Image selection
+  // ==========================================================
+
+  function handleImageChange(event) {
+
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setResult(null);
+    // Make sure it is an image
+    if (!file.type.startsWith("image/")) {
 
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/analyze",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            recipe,
-            allergens: selectedAllergens,
-          }),
-        }
+      setError(
+        "Please select an image file."
       );
 
-      const data = await response.json();
+      return;
+
+    }
+
+    setImage(file);
+
+    setImagePreview(
+      URL.createObjectURL(file)
+    );
+
+    setError("");
+
+    setResult(null);
+
+  }
+
+
+  // ==========================================================
+  // Analyze typed recipe
+  // ==========================================================
+
+  async function analyzeRecipe() {
+
+    if (!recipe.trim()) {
+
+      setError(
+        "Please enter a recipe first."
+      );
+
+      return;
+
+    }
+
+    if (
+      selectedAllergens.length === 0
+    ) {
+
+      setError(
+        "Please select at least one allergy."
+      );
+
+      return;
+
+    }
+
+    setLoading(true);
+
+    setError("");
+
+    setResult(null);
+
+
+    try {
+
+      const response =
+        await fetch(
+          `${API_URL}/api/analyze`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              recipe: recipe,
+
+              allergens:
+                selectedAllergens,
+            }),
+          }
+        );
+
+
+      const data =
+        await response.json();
+
 
       if (!response.ok) {
+
         throw new Error(
-          data.error || "Unable to analyze recipe."
+          data.error ||
+          "Unable to analyze recipe."
         );
+
       }
+
 
       setResult(data);
 
-    } catch (err) {
+    }
+
+    catch (err) {
+
+      console.error(err);
+
       setError(
         err.message ||
-        "Could not connect to the analyzer."
+        "Could not connect to the backend."
       );
-    } finally {
-      setLoading(false);
+
     }
+
+    finally {
+
+      setLoading(false);
+
+    }
+
   }
 
-  // ---------------------------------------------
-  // Reset
-  // ---------------------------------------------
+
+  // ==========================================================
+  // Analyze image
+  // ==========================================================
+
+  async function analyzeImage() {
+
+    if (!image) {
+
+      setError(
+        "Please upload an image first."
+      );
+
+      return;
+
+    }
+
+    if (
+      selectedAllergens.length === 0
+    ) {
+
+      setError(
+        "Please select at least one allergy."
+      );
+
+      return;
+
+    }
+
+    setLoading(true);
+
+    setError("");
+
+    setResult(null);
+
+
+    try {
+
+      const formData =
+        new FormData();
+
+
+      formData.append(
+        "image",
+        image
+      );
+
+
+      formData.append(
+        "allergens",
+        selectedAllergens.join(",")
+      );
+
+
+      const response =
+        await fetch(
+          `${API_URL}/api/analyze-image`,
+          {
+            method: "POST",
+
+            body: formData,
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          "Unable to analyze image."
+        );
+
+      }
+
+
+      setResult(data);
+
+    }
+
+    catch (err) {
+
+      console.error(err);
+
+      setError(
+        err.message ||
+        "Could not connect to the backend."
+      );
+
+    }
+
+    finally {
+
+      setLoading(false);
+
+    }
+
+  }
+
+
+  // ==========================================================
+  // Clear everything
+  // ==========================================================
 
   function reset() {
+
     setRecipe("");
+
+    setImage(null);
+
+    setImagePreview(null);
+
     setResult(null);
+
     setError("");
+
   }
+
+
+  // ==========================================================
+  // Results
+  // ==========================================================
 
   const detectedAllergens =
     result?.allergens || {};
 
   const detectedCount =
-    Object.keys(detectedAllergens).length;
+    Object.keys(
+      detectedAllergens
+    ).length;
+
+
+  const flaggedIngredients =
+    Object.values(
+      detectedAllergens
+    ).flat();
+
+
+  // ==========================================================
+  // Render
+  // ==========================================================
 
   return (
+
     <div className="app">
 
-      {/* Navigation */}
+
+      {/* ====================================================
+          Navigation
+      ==================================================== */}
+
       <nav className="navbar">
 
         <div className="brand">
-          <div className="brand-icon">🥗</div>
+
+          <div className="brand-icon">
+            🥗
+          </div>
 
           <div>
-            <h1>SafePlate</h1>
-            <span>AI Allergy Analyzer</span>
+
+            <h1>
+              SafePlate
+            </h1>
+
+            <span>
+              AI Allergy Analyzer
+            </span>
+
           </div>
+
         </div>
 
+
         <div className="nav-status">
+
           <span className="status-dot"></span>
+
           AI Analyzer
+
         </div>
 
       </nav>
 
 
-      {/* Main */}
+      {/* ====================================================
+          Main
+      ==================================================== */}
+
       <main className="container">
 
-        {/* Hero */}
+
+        {/* ==================================================
+            Hero
+        ================================================== */}
+
         <section className="hero">
 
           <div className="hero-text">
@@ -174,14 +494,22 @@ function App() {
             </div>
 
             <h2>
+
               Know what's in your food
-              <span> before you eat it.</span>
+
+              <span>
+                {" "}before you eat it.
+              </span>
+
             </h2>
 
             <p>
-              Paste a recipe, select your allergies,
-              and let our AI identify ingredients
-              that could trigger an allergic reaction.
+
+              Upload a food label, restaurant
+              menu, or recipe and let AI
+              identify ingredients that may
+              contain your selected allergens.
+
             </p>
 
           </div>
@@ -189,81 +517,331 @@ function App() {
         </section>
 
 
-        {/* Allergy Selection */}
+        {/* ==================================================
+            Allergy selection
+        ================================================== */}
+
         <section className="card">
 
           <div className="section-header">
 
             <div>
-              <h3>1. Select your allergies</h3>
+
+              <h3>
+                1. Select your allergies
+              </h3>
 
               <p>
-                We'll check the recipe against
+                We'll check the food against
                 the allergies you select.
               </p>
+
             </div>
 
+
             <span className="selection-count">
-              {selectedAllergens.length} selected
+
+              {selectedAllergens.length}
+              {" "}selected
+
             </span>
+
+          </div>
+
+
+          <div className="allergy-actions">
+
+            <button
+              onClick={
+                selectAllAllergens
+              }
+            >
+              Select all
+            </button>
+
+            <button
+              onClick={
+                clearAllAllergens
+              }
+            >
+              Clear all
+            </button>
 
           </div>
 
 
           <div className="allergy-grid">
 
-            {allergens.map((allergen) => {
+            {allergens.map(
+              (allergen) => {
 
-              const selected =
-                selectedAllergens.includes(allergen);
+                const selected =
+                  selectedAllergens.includes(
+                    allergen
+                  );
 
-              return (
-                <button
-                  key={allergen}
-                  className={`allergy ${
-                    selected ? "selected" : ""
-                  }`}
-                  onClick={() =>
-                    toggleAllergen(allergen)
-                  }
-                >
-                  <span className="check">
-                    {selected ? "✓" : ""}
-                  </span>
 
-                  {formatAllergen(allergen)}
-                </button>
-              );
-            })}
+                return (
+
+                  <button
+
+                    key={allergen}
+
+                    className={
+                      `allergy ${
+                        selected
+                          ? "selected"
+                          : ""
+                      }`
+                    }
+
+                    onClick={() =>
+                      toggleAllergen(
+                        allergen
+                      )
+                    }
+
+                  >
+
+                    <span className="check">
+
+                      {selected
+                        ? "✓"
+                        : ""}
+
+                    </span>
+
+                    {formatAllergen(
+                      allergen
+                    )}
+
+                  </button>
+
+                );
+
+              }
+            )}
 
           </div>
 
         </section>
 
 
-        {/* Recipe Input */}
+        {/* ==================================================
+            Input card
+        ================================================== */}
+
         <section className="card">
 
           <div className="section-header">
 
             <div>
-              <h3>2. Enter your recipe</h3>
+
+              <h3>
+                2. Analyze your food
+              </h3>
 
               <p>
-                Paste the ingredients or full recipe
-                below.
+                Upload an image or enter
+                the recipe manually.
               </p>
+
             </div>
 
           </div>
 
 
-          <textarea
-            value={recipe}
-            onChange={(event) =>
-              setRecipe(event.target.value)
-            }
-            placeholder={`Example:
+          {/* Tabs */}
+
+          <div className="input-tabs">
+
+            <button
+
+              className={
+                inputMode === "image"
+                  ? "tab active"
+                  : "tab"
+              }
+
+              onClick={() =>
+                setInputMode("image")
+              }
+
+            >
+              📷 Upload Image
+
+            </button>
+
+
+            <button
+
+              className={
+                inputMode === "recipe"
+                  ? "tab active"
+                  : "tab"
+              }
+
+              onClick={() =>
+                setInputMode("recipe")
+              }
+
+            >
+              ✏️ Enter Recipe
+
+            </button>
+
+          </div>
+
+
+          {/* =================================================
+              IMAGE MODE
+          ================================================= */}
+
+          {inputMode === "image" && (
+
+            <div className="upload-area">
+
+
+              <label
+
+                htmlFor="image-upload"
+
+                className="upload-box"
+
+              >
+
+                <div className="upload-icon">
+                  📷
+                </div>
+
+
+                <strong>
+                  Upload a food image
+                </strong>
+
+
+                <span>
+                  Recipe, restaurant menu,
+                  or packaged food label
+                </span>
+
+
+                <span className="upload-button">
+                  Choose Image
+                </span>
+
+              </label>
+
+
+              <input
+
+                id="image-upload"
+
+                type="file"
+
+                accept="
+                  image/png,
+                  image/jpeg,
+                  image/jpg,
+                  image/webp
+                "
+
+                onChange={
+                  handleImageChange
+                }
+
+                hidden
+
+              />
+
+
+              {/* Image preview */}
+
+              {imagePreview && (
+
+                <div className="preview">
+
+                  <img
+
+                    src={imagePreview}
+
+                    alt="Uploaded food"
+
+                  />
+
+
+                  <div className="preview-info">
+
+                    <strong>
+                      {image?.name}
+                    </strong>
+
+                    <span>
+                      Ready for OCR
+                    </span>
+
+                  </div>
+
+                </div>
+
+              )}
+
+
+              {error && (
+
+                <div className="error">
+                  ⚠️ {error}
+                </div>
+
+              )}
+
+
+              <button
+
+                className="analyze-button"
+
+                onClick={
+                  analyzeImage
+                }
+
+                disabled={
+                  !image ||
+                  loading
+                }
+
+              >
+
+                {loading
+                  ? "📖 Reading image..."
+                  : "🔍 Scan & Analyze"}
+
+              </button>
+
+
+            </div>
+
+          )}
+
+
+          {/* =================================================
+              RECIPE MODE
+          ================================================= */}
+
+          {inputMode === "recipe" && (
+
+            <>
+
+              <textarea
+
+                value={recipe}
+
+                onChange={(event) =>
+                  setRecipe(
+                    event.target.value
+                  )
+                }
+
+                placeholder={`Example:
 
 2 cups all-purpose flour
 1 cup whole milk
@@ -271,70 +849,160 @@ function App() {
 4 tablespoons butter
 1 teaspoon vanilla extract
 1/2 cup sugar`}
-          />
+
+              />
 
 
-          {error && (
-            <div className="error">
-              ⚠️ {error}
-            </div>
+              {error && (
+
+                <div className="error">
+                  ⚠️ {error}
+                </div>
+
+              )}
+
+
+              <div className="input-actions">
+
+                <button
+
+                  className="clear-button"
+
+                  onClick={reset}
+
+                >
+                  Clear
+                </button>
+
+
+                <button
+
+                  className="analyze-button"
+
+                  onClick={
+                    analyzeRecipe
+                  }
+
+                  disabled={loading}
+
+                >
+
+                  {loading
+                    ? "Analyzing..."
+                    : "🔍 Analyze Recipe"}
+
+                </button>
+
+              </div>
+
+            </>
+
           )}
-
-
-          <div className="input-actions">
-
-            <button
-              className="clear-button"
-              onClick={reset}
-            >
-              Clear
-            </button>
-
-            <button
-              className="analyze-button"
-              onClick={analyzeRecipe}
-              disabled={loading}
-            >
-              {loading
-                ? "Analyzing..."
-                : "🔍 Analyze Recipe"}
-            </button>
-
-          </div>
 
         </section>
 
 
-        {/* Results */}
+        {/* ==================================================
+            Results
+        ================================================== */}
+
         {result && (
 
           <section className="results">
 
+
+            {/* Results heading */}
+
             <div className="results-header">
 
               <div>
+
                 <div className="eyebrow">
                   ANALYSIS COMPLETE
                 </div>
 
-                <h2>Recipe analysis</h2>
+                <h2>
+                  Food analysis
+                </h2>
+
               </div>
 
+
               {detectedCount === 0 ? (
+
                 <div className="safe-badge">
-                  ✓ No selected allergens detected
+
+                  ✓ No selected allergens
+                  detected
+
                 </div>
+
               ) : (
+
                 <div className="danger-badge">
-                  ⚠ {detectedCount} potential allergen
-                  {detectedCount !== 1 ? "s" : ""} found
+
+                  ⚠ {detectedCount}
+
+                  {" "}potential allergen
+                  {detectedCount !== 1
+                    ? "s"
+                    : ""}
+
+                  {" "}found
+
                 </div>
+
               )}
 
             </div>
 
 
-            {/* Warning */}
+            {/* =================================================
+                OCR text
+            ================================================= */}
+
+            {result.ocr_text && (
+
+              <div className="ocr-card">
+
+                <div className="ocr-header">
+
+                  <div>
+
+                    <h3>
+                      📄 Text detected
+                    </h3>
+
+                    <p>
+                      This is the text extracted
+                      from your image.
+                    </p>
+
+                  </div>
+
+
+                  <span className="ocr-badge">
+                    OCR
+                  </span>
+
+                </div>
+
+
+                <pre className="ocr-text">
+
+                  {result.ocr_text}
+
+                </pre>
+
+              </div>
+
+            )}
+
+
+            {/* =================================================
+                Warning
+            ================================================= */}
+
             {detectedCount > 0 && (
 
               <div className="warning">
@@ -343,6 +1011,7 @@ function App() {
                   ⚠️
                 </div>
 
+
                 <div>
 
                   <h3>
@@ -350,10 +1019,13 @@ function App() {
                   </h3>
 
                   <p>
+
                     The analyzer found ingredients
                     associated with your selected
-                    allergy profile. Review them
-                    carefully before consuming.
+                    allergy profile. Review the
+                    original food label carefully
+                    before consuming.
+
                   </p>
 
                 </div>
@@ -363,7 +1035,10 @@ function App() {
             )}
 
 
-            {/* Allergen cards */}
+            {/* =================================================
+                Allergen cards
+            ================================================= */}
+
             {detectedCount > 0 && (
 
               <div className="allergen-results">
@@ -380,24 +1055,36 @@ function App() {
 
                       <div className="allergen-title">
 
-                        <span>⚠️</span>
+                        <span>
+                          ⚠️
+                        </span>
 
                         <strong>
-                          {formatAllergen(allergen)}
+                          {formatAllergen(
+                            allergen
+                          )}
                         </strong>
 
                       </div>
 
+
                       <div className="ingredient-list">
 
                         {ingredients.map(
-                          (ingredient, index) => (
+                          (
+                            ingredient,
+                            index
+                          ) => (
 
                             <span
                               className="ingredient-tag"
-                              key={`${ingredient}-${index}`}
+                              key={
+                                `${ingredient}-${index}`
+                              }
                             >
+
                               {ingredient}
+
                             </span>
 
                           )
@@ -415,7 +1102,10 @@ function App() {
             )}
 
 
-            {/* Detected ingredients */}
+            {/* =================================================
+                Detected ingredients
+            ================================================= */}
+
             <div className="ingredients-section">
 
               <h3>
@@ -423,63 +1113,100 @@ function App() {
               </h3>
 
               <p>
-                Ingredients identified by the
-                recipe AI model.
+                Ingredients identified by
+                the recipe AI model.
               </p>
 
-              <div className="ingredient-table">
 
-                {result.ingredients.map(
-                  (ingredient, index) => {
+              {result.ingredients &&
+              result.ingredients.length > 0 ? (
 
-                    const isAllergen =
-                      Object.values(
-                        detectedAllergens
-                      )
-                        .flat()
-                        .some(
-                          (item) =>
-                            item === ingredient.text
+                <div className="ingredient-table">
+
+                  {result.ingredients.map(
+                    (
+                      ingredient,
+                      index
+                    ) => {
+
+                      const isAllergen =
+                        flaggedIngredients.includes(
+                          ingredient.text
                         );
 
-                    return (
-                      <div
-                        className={`ingredient-row ${
-                          isAllergen
-                            ? "flagged"
-                            : ""
-                        }`}
-                        key={`${ingredient.text}-${index}`}
-                      >
 
-                        <span>
-                          {isAllergen
-                            ? "⚠️"
-                            : "✓"}
-                        </span>
+                      return (
 
-                        <strong>
-                          {ingredient.text}
-                        </strong>
+                        <div
 
-                        <span className="confidence">
-                          {Math.round(
-                            ingredient.confidence * 100
-                          )}
-                          % confidence
-                        </span>
+                          className={
+                            `ingredient-row ${
+                              isAllergen
+                                ? "flagged"
+                                : ""
+                            }`
+                          }
 
-                      </div>
-                    );
-                  }
-                )}
+                          key={
+                            `${ingredient.text}-${index}`
+                          }
 
-              </div>
+                        >
+
+                          <span>
+
+                            {isAllergen
+                              ? "⚠️"
+                              : "✓"}
+
+                          </span>
+
+
+                          <strong>
+
+                            {ingredient.text}
+
+                          </strong>
+
+
+                          <span className="confidence">
+
+                            {Math.round(
+                              ingredient.confidence *
+                              100
+                            )}
+
+                            % confidence
+
+                          </span>
+
+                        </div>
+
+                      );
+
+                    }
+                  )}
+
+                </div>
+
+              ) : (
+
+                <div className="no-ingredients">
+
+                  No food ingredients were
+                  detected.
+
+                </div>
+
+              )}
 
             </div>
 
 
-            {/* Alternative placeholder */}
+            {/* =================================================
+                Alternatives
+            ================================================= */}
+
             {detectedCount > 0 && (
 
               <div className="alternative-card">
@@ -488,6 +1215,7 @@ function App() {
                   💡
                 </div>
 
+
                 <div>
 
                   <h3>
@@ -495,13 +1223,28 @@ function App() {
                   </h3>
 
                   <p>
-                    AI-powered ingredient
-                    substitutions can be generated
-                    for the flagged ingredients.
+
+                    We can use an AI assistant
+                    to suggest substitutions for
+                    the flagged ingredients.
+
                   </p>
 
-                  <button className="alternative-button">
+
+                  <button
+
+                    className="alternative-button"
+
+                    onClick={() =>
+                      alert(
+                        "AI alternatives will be added next!"
+                      )
+                    }
+
+                  >
+
                     Suggest Alternatives
+
                   </button>
 
                 </div>
@@ -515,7 +1258,10 @@ function App() {
         )}
 
 
-        {/* Disclaimer */}
+        {/* ==================================================
+            Disclaimer
+        ================================================== */}
+
         <footer>
 
           <strong>
@@ -523,33 +1269,44 @@ function App() {
           </strong>
 
           <p>
-            This tool is designed to help identify
-            potential allergens and is not a substitute
-            for medical advice or careful ingredient
-            verification. Always check product labels
-            and consult a qualified healthcare
-            professional regarding food allergies.
+
+            This tool is designed to help
+            identify potential allergens and
+            is not a substitute for medical
+            advice or careful ingredient
+            verification. Always check product
+            labels and consult a qualified
+            healthcare professional regarding
+            food allergies.
+
           </p>
 
         </footer>
 
+
       </main>
 
     </div>
+
   );
 }
 
 
-// ---------------------------------------------
-// Helpers
-// ---------------------------------------------
+// ============================================================
+// Helper
+// ============================================================
 
 function formatAllergen(value) {
+
   return value
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase()
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase()
     );
+
 }
+
 
 export default App;
