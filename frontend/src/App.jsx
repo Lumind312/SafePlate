@@ -19,41 +19,19 @@ const DEFAULT_ALLERGENS = [
 
 
 function App() {
-
-  // ==========================================================
   // State
-  // ==========================================================
-
   const [recipe, setRecipe] = useState("");
-
   const [image, setImage] = useState(null);
-
-  const [imagePreview, setImagePreview] =
-    useState(null);
-
-  const [inputMode, setInputMode] =
-    useState("recipe");
-
-  const [allergens, setAllergens] =
-    useState(DEFAULT_ALLERGENS);
-
-  const [selectedAllergens, setSelectedAllergens] =
-    useState(DEFAULT_ALLERGENS);
-
-  const [result, setResult] =
-    useState(null);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [imagePreview, setImagePreview] = useState(null);
+  const [inputMode, setInputMode] = useState("recipe");
+  const [allergens, setAllergens] = useState(DEFAULT_ALLERGENS);
+  const [selectedAllergens, setSelectedAllergens] = useState(DEFAULT_ALLERGENS);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
 
-  // ==========================================================
   // Load allergies from backend
-  // ==========================================================
-
   useEffect(() => {
 
     fetch(`${API_URL}/api/allergens`)
@@ -99,10 +77,7 @@ function App() {
   }, []);
 
 
-  // ==========================================================
-  // Toggle allergy
-  // ==========================================================
-
+  // Toggle box for allergy
   function toggleAllergen(allergen) {
 
     setSelectedAllergens(
@@ -130,10 +105,7 @@ function App() {
   }
 
 
-  // ==========================================================
   // Select all allergies
-  // ==========================================================
-
   function selectAllAllergens() {
 
     setSelectedAllergens(
@@ -143,21 +115,12 @@ function App() {
   }
 
 
-  // ==========================================================
   // Clear all allergies
-  // ==========================================================
-
   function clearAllAllergens() {
-
     setSelectedAllergens([]);
-
   }
 
-
-  // ==========================================================
   // Image selection
-  // ==========================================================
-
   function handleImageChange(event) {
 
     const file =
@@ -190,11 +153,7 @@ function App() {
 
   }
 
-
-  // ==========================================================
   // Analyze typed recipe
-  // ==========================================================
-
   async function analyzeRecipe() {
 
     if (!recipe.trim()) {
@@ -285,12 +244,9 @@ function App() {
     }
 
   }
-
-
-  // ==========================================================
+  
+  
   // Analyze image
-  // ==========================================================
-
   async function analyzeImage() {
 
     if (!image) {
@@ -389,10 +345,7 @@ function App() {
   }
 
 
-  // ==========================================================
-  // Clear everything
-  // ==========================================================
-
+  // Clear
   function reset() {
 
     setRecipe("");
@@ -408,10 +361,7 @@ function App() {
   }
 
 
-  // ==========================================================
   // Results
-  // ==========================================================
-
   const detectedAllergens =
     result?.allergens || {};
 
@@ -427,10 +377,7 @@ function App() {
     ).flat();
 
 
-  // ==========================================================
   // Render
-  // ==========================================================
-
   return (
 
     <div className="app">
@@ -441,15 +388,12 @@ function App() {
       ==================================================== */}
 
       <nav className="navbar">
-
         <div className="brand">
-
           <div className="brand-icon">
             🥗
           </div>
 
           <div>
-
             <h1>
               SafePlate
             </h1>
@@ -457,20 +401,13 @@ function App() {
             <span>
               AI Allergy Analyzer
             </span>
-
           </div>
-
         </div>
-
 
         <div className="nav-status">
-
           <span className="status-dot"></span>
-
           AI Analyzer
-
         </div>
-
       </nav>
 
 

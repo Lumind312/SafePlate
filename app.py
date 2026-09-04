@@ -8,21 +8,13 @@ from PIL import Image
 
 from transformers import pipeline
 
-
-# ============================================================
-# Flask setup
-# ============================================================
-
+# Flask
 app = Flask(__name__)
-
 # Allow requests from the React frontend
 CORS(app)
 
 
-# ============================================================
 # Load allergen database
-# ============================================================
-
 try:
     food_df = pd.read_csv("FoodData.csv")
 
@@ -48,27 +40,30 @@ try:
         .to_dict()
     )
 
+    # add the name of the allergen to the list, just in case
+    for i in ALLERGENS:
+        allergy = i
+        if allergy.lower().find(" allergy") != -1:
+            allergy = allergy[:allergy.lower().find(" allergy")]
+                
+        if allergy not in ALLERGENS[i]:
+            ALLERGENS[i] += [allergy]
+        print(ALLERGENS[i])
+
     print("Loaded allergen database.")
-    print(
-        f"Found {len(ALLERGENS)} allergy categories."
-    )
+    print(f"Found {len(ALLERGENS)} allergy categories.")
 
 except Exception as e:
-
     print("ERROR loading FoodData.csv:")
     print(e)
 
     ALLERGENS = {}
 
 
-# ============================================================
-# Load recipe NER model
-# ============================================================
-
+# recipe NER model
 print("Loading recipe NER model...")
 
 try:
-
     ner = pipeline(
         "ner",
         model="rgonzale/recipe-ner-model",
@@ -78,17 +73,13 @@ try:
     print("Recipe NER model loaded successfully.")
 
 except Exception as e:
-
     print("ERROR loading recipe NER model:")
     print(e)
 
     ner = None
 
 
-# ============================================================
 # OCR
-# ============================================================
-
 def extract_text_from_image(image_file):
     """
     Use Tesseract OCR to extract text from an image.
@@ -107,7 +98,7 @@ def extract_text_from_image(image_file):
         config="--psm 6"
     )
 
-    text = text.strip()
+    text = text.strip().lower()
 
     print("OCR complete.")
     print("OCR text:")
@@ -116,14 +107,8 @@ def extract_text_from_image(image_file):
     return text
 
 
-# ============================================================
 # Allergen detection
-# ============================================================
-
-def find_allergens(
-    ingredients,
-    selected_allergens=None
-):
+def find_allergens(ingredients, selected_allergens=None):
     """
     Compare detected ingredients against
     FoodData.csv.
@@ -144,16 +129,13 @@ def find_allergens(
         text = ingredient["text"].lower().strip()
 
         for allergen, foods in ALLERGENS.items():
-
             # If the user selected allergies,
             # only check those allergies.
             if selected_allergens:
-
                 if allergen.lower() not in selected_allergens:
                     continue
 
             for food in foods:
-
                 if not isinstance(food, str):
                     continue
 
@@ -161,38 +143,22 @@ def find_allergens(
 
                 if not food:
                     continue
-
                 if food in text:
-
-                    found.setdefault(
-                        allergen,
-                        []
-                    ).append(
-                        ingredient["text"]
-                    )
-
+                    found.setdefault(allergen, []).append(ingredient["text"])
                     break
 
     return found
 
 
-# ============================================================
 # Recipe analysis
-# ============================================================
-
-def analyze_recipe(
-    recipe_text,
-    selected_allergens=None
-):
+def analyze_recipe(recipe_text, selected_allergens=None):
 
     if ner is None:
-
         raise RuntimeError(
             "Recipe NER model could not be loaded."
         )
 
     if not recipe_text:
-
         return {
             "ingredients": [],
             "allergens": {}
@@ -205,26 +171,22 @@ def analyze_recipe(
     ingredients = []
 
     for entity in entities:
-
         if entity["entity_group"] == "FOOD":
-
             ingredients.append({
                 "text": entity["word"],
-                "confidence": round(
-                    float(entity["score"]),
-                    3
-                )
+                "confidence": round(float(entity["score"]), 3)
             })
 
     print("Detected ingredients:")
     print(ingredients)
 
-    allergens = find_allergens(
-        ingredients,
-        selected_allergens
-    )
+    allergens = find_allergens(ingredients, selected_allergens)
 
     print("Detected allergens:")
+    # remove duplicates
+    for i in allergens:
+        print(allergens[i], list(set(allergens[i])))
+        allergens[i] = list(set(allergens[i]))
     print(allergens)
 
     return {
@@ -233,56 +195,24 @@ def analyze_recipe(
     }
 
 
-# ============================================================
-# Health check
-# ============================================================
-
-@app.route(
-    "/api/health",
-    methods=["GET"]
-)
-def health():
-
-    return jsonify({
-        "status": "ok"
-    })
-
-
-# ============================================================
 # Get allergen list
-# ============================================================
-
 @app.route(
     "/api/allergens",
     methods=["GET"]
 )
 def get_allergens():
+    allergens = sorted(list(ALLERGENS.keys()))
+    return jsonify({"allergens": allergens})
 
-    allergens = sorted(
-        list(ALLERGENS.keys())
-    )
-
-    return jsonify({
-        "allergens": allergens
-    })
-
-
-# ============================================================
 # Analyze typed recipe
-# ============================================================
-
 @app.route(
     "/api/analyze",
     methods=["POST"]
 )
 def analyze():
-
     try:
-
         data = request.get_json()
-
         if not data:
-
             return jsonify({
                 "error": "No request data provided."
             }), 400
@@ -298,7 +228,6 @@ def analyze():
         )
 
         if not recipe.strip():
-
             return jsonify({
                 "error": "Please enter a recipe."
             }), 400
@@ -311,7 +240,6 @@ def analyze():
         return jsonify(result)
 
     except Exception as e:
-
         print("ERROR in /api/analyze:")
         print(e)
 
@@ -320,24 +248,15 @@ def analyze():
         }), 500
 
 
-# ============================================================
 # Analyze uploaded image
-# ============================================================
-
 @app.route(
     "/api/analyze-image",
     methods=["POST"]
 )
 def analyze_image():
-
     try:
-
-        # -----------------------------------------
         # Check image
-        # -----------------------------------------
-
         if "image" not in request.files:
-
             return jsonify({
                 "error": "No image was uploaded."
             }), 400
@@ -345,68 +264,42 @@ def analyze_image():
         image = request.files["image"]
 
         if image.filename == "":
-
             return jsonify({
                 "error": "No image was selected."
             }), 400
 
-
-        # -----------------------------------------
         # Get selected allergies
-        # -----------------------------------------
-
         allergies_string = request.form.get(
             "allergens",
             ""
         )
 
         if allergies_string:
-
             selected_allergens = [
                 allergy.strip()
                 for allergy in allergies_string.split(",")
                 if allergy.strip()
             ]
-
         else:
-
             selected_allergens = []
 
-
-        # -----------------------------------------
         # OCR
-        # -----------------------------------------
-
-        extracted_text = extract_text_from_image(
-            image
-        )
+        extracted_text = extract_text_from_image(image)
 
         if not extracted_text:
-
             return jsonify({
                 "error": (
                     "OCR could not detect any text "
                     "in the image."
                 )
             }), 400
-
-
-        # -----------------------------------------
-        # Analyze OCR text
-        # -----------------------------------------
-
+        
         result = analyze_recipe(
             extracted_text,
             selected_allergens
         )
 
-
-        # -----------------------------------------
-        # Return OCR text too
-        # -----------------------------------------
-
         result["ocr_text"] = extracted_text
-
         return jsonify(result)
 
 
@@ -419,10 +312,6 @@ def analyze_image():
             "error": str(e)
         }), 500
 
-
-# ============================================================
-# Run server
-# ============================================================
 
 if __name__ == "__main__":
 
