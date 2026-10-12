@@ -3,10 +3,10 @@ from flask_cors import CORS
 
 import pandas as pd
 import pytesseract
+import kagglehub
+from kagglehub import KaggleDatasetAdapter
 
 from PIL import Image
-
-from transformers import pipeline
 
 # Flask
 app = Flask(__name__)
@@ -16,7 +16,12 @@ CORS(app)
 
 # Load allergen database
 try:
-    food_df = pd.read_csv("FoodData.csv")
+    # food_df = pd.read_csv("FoodData.csv")
+    food_df = kagglehub.load_dataset(
+        KaggleDatasetAdapter.PANDAS,
+        "boltcutters/food-allergens-and-allergies",
+        "FoodData.csv"
+    )
 
     food_df = food_df[["Food", "Allergy"]]
 
@@ -48,35 +53,17 @@ try:
                 
         if allergy not in ALLERGENS[i]:
             ALLERGENS[i] += [allergy]
-        print(ALLERGENS[i])
+        # print(ALLERGENS[i])
 
     print("Loaded allergen database.")
     print(f"Found {len(ALLERGENS)} allergy categories.")
+
 
 except Exception as e:
     print("ERROR loading FoodData.csv:")
     print(e)
 
     ALLERGENS = {}
-
-
-# recipe NER model
-print("Loading recipe NER model...")
-
-try:
-    ner = pipeline(
-        "ner",
-        model="rgonzale/recipe-ner-model",
-        aggregation_strategy="simple"
-    )
-
-    print("Recipe NER model loaded successfully.")
-
-except Exception as e:
-    print("ERROR loading recipe NER model:")
-    print(e)
-
-    ner = None
 
 
 # OCR
@@ -150,50 +137,7 @@ def find_allergens(ingredients, selected_allergens=None):
     return found
 
 
-# Recipe analysis
-def analyze_recipe(recipe_text, selected_allergens=None):
-
-    if ner is None:
-        raise RuntimeError(
-            "Recipe NER model could not be loaded."
-        )
-
-    if not recipe_text:
-        return {
-            "ingredients": [],
-            "allergens": {}
-        }
-
-    print("Running recipe NER...")
-
-    entities = ner(recipe_text)
-
-    ingredients = []
-
-    for entity in entities:
-        if entity["entity_group"] == "FOOD":
-            ingredients.append({
-                "text": entity["word"],
-                "confidence": round(float(entity["score"]), 3)
-            })
-
-    print("Detected ingredients:")
-    print(ingredients)
-
-    allergens = find_allergens(ingredients, selected_allergens)
-
-    print("Detected allergens:")
-    # remove duplicates
-    for i in allergens:
-        print(allergens[i], list(set(allergens[i])))
-        allergens[i] = list(set(allergens[i]))
-    print(allergens)
-
-    return {
-        "ingredients": ingredients,
-        "allergens": allergens
-    }
-
+from Analyze_Allergy import analyze_recipe
 
 # Get allergen list
 @app.route(
@@ -236,6 +180,18 @@ def analyze():
             recipe,
             selected_allergens
         )
+        print(result)
+
+        ingredients = []
+        answer = {}
+        for item in result:
+            ingredients += [{'text': i['matched_text']} for i in item['ingredients']]
+            answer[item['allergy']] = [i['matched_text'] for i in item['ingredients']]
+        print({'ingredients': ingredients, 'allergens': answer})
+
+        print(type(ingredients))
+        result = {'ingredients': ingredients, 'allergens': answer}
+        print(result)
 
         return jsonify(result)
 

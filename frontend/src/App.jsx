@@ -1078,9 +1078,7 @@ function App() {
 
                           className={
                             `ingredient-row ${
-                              isAllergen
-                                ? "flagged"
-                                : ""
+                              "flagged"
                             }`
                           }
 
@@ -1092,9 +1090,7 @@ function App() {
 
                           <span>
 
-                            {isAllergen
-                              ? "⚠️"
-                              : "✓"}
+                            {"⚠️"}
 
                           </span>
 
@@ -1105,17 +1101,6 @@ function App() {
 
                           </strong>
 
-
-                          <span className="confidence">
-
-                            {Math.round(
-                              ingredient.confidence *
-                              100
-                            )}
-
-                            % confidence
-
-                          </span>
 
                         </div>
 
