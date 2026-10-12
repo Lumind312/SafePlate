@@ -254,6 +254,17 @@ def analyze_image():
             extracted_text,
             selected_allergens
         )
+        
+        ingredients = []
+        answer = {}
+        for item in result:
+            ingredients += [{'text': i['matched_text']} for i in item['ingredients']]
+            answer[item['allergy']] = [i['matched_text'] for i in item['ingredients']]
+        print({'ingredients': ingredients, 'allergens': answer})
+
+        print(type(ingredients))
+        result = {'ingredients': ingredients, 'allergens': answer}
+        print(result)
 
         result["ocr_text"] = extracted_text
         return jsonify(result)
